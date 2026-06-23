@@ -54,6 +54,10 @@
       "Bash(uv:*)",
       "Bash(pytest:*)",
 
+      "Bash(mvn:*)",
+      "Bash(mvnw:*)",
+      "Bash(./mvnw:*)",
+
       "Bash(docker ps:*)",
       "Bash(docker logs:*)",
       "Bash(docker inspect:*)",
@@ -99,5 +103,18 @@
       "Read(examples/**)"
     ]
   },
-  "plansDirectory": "./docs/plans"
+  "plansDirectory": "./docs/plans",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/maven-dep-security-check.sh\""
+          }
+        ]
+      }
+    ]
+  }
 }
