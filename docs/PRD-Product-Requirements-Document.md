@@ -248,8 +248,8 @@ it does not open, track, or resolve official complaint/return cases.
 
 | Document | File path | When it is used |
 |---|---|---|
-| Return policy (Polityka Zwrotów) | `docs/company-policies/polityka-zwrotow.md` | Injected into the agent context for **Return** decisions |
-| Complaint policy (Polityka Reklamacji) | `docs/company-policies/polityka-reklamacji.md` | Injected into the agent context for **Complaint** decisions |
+| Return policy (Polityka Zwrotów) | `docs/policies/polityka-zwrotow.md` | Injected into the agent context for **Return** decisions |
+| Complaint policy (Polityka Reklamacji) | `docs/policies/polityka-reklamacji.md` | Injected into the agent context for **Complaint** decisions |
 
 ---
 
@@ -410,7 +410,7 @@ of the assistant.
 - Decisions are **advisory only**; no human-in-the-loop routing system exists in the MVP (a human
   handoff is communicated as text, not implemented as a workflow).
 - The two policy documents are **examples** created to bootstrap the MVP
-  (`docs/company-policies/`) and are expected to be reviewed/replaced by the legal team.
+  (`docs/policies/`) and are expected to be reviewed/replaced by the legal team.
 - Sales channel (online vs in-store) affects the return window; since the form does not capture
   channel explicitly, the agent should treat channel as a clarifying factor and may route to
   **Needs review** when it materially affects the outcome. *(Open question — see below.)*
