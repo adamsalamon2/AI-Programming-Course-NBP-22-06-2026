@@ -16,6 +16,7 @@ Use these tokens and assets to build UIs that stay visually consistent with the 
 | Logo (wordmark + emblem) | [`../assets/logo.svg`](../assets/logo.svg) | SVG, `viewBox="0 0 205 64"` |
 | Favicon | [`../assets/favicon.ico`](../assets/favicon.ico) | Browser tab icon |
 | Design tokens | [`../assets/design-tokens.json`](../assets/design-tokens.json) | Structured JSON |
+| Fonts (self-hosted) | [`../assets/fonts/`](../assets/fonts/) | 26 TTF files + ready-to-use [`fonts.css`](../assets/fonts/fonts.css) |
 
 ---
 
@@ -64,12 +65,19 @@ Two font families: a **serif for headings** (institutional, editorial feel) and 
 - **Headings:** `"Brygada 1918", Georgia, "Times New Roman", serif`
 - **Body / UI:** `"Libre Franklin", -apple-system, Arial, "Noto Sans", sans-serif`
 
-Both are self-hosted as `@font-face` (TTF). Equivalents are available on Google Fonts:
-[Brygada 1918](https://fonts.google.com/specimen/Brygada+1918) · [Libre Franklin](https://fonts.google.com/specimen/Libre+Franklin).
+Both are **self-hosted** in [`../assets/fonts/`](../assets/fonts/) (TTF). Just import the bundled
+stylesheet — it declares every `@font-face`:
 
 ```css
-/* Brygada 1918 — weights 400, 500, 600, 700 (+ italics) */
-/* Libre Franklin — weights 100–900 (+ italics) */
+@import url("../assets/fonts/fonts.css");
+```
+
+The original TTFs are also available on Google Fonts:
+[Brygada 1918](https://fonts.google.com/specimen/Brygada+1918) · [Libre Franklin](https://fonts.google.com/specimen/Libre+Franklin).
+
+```text
+Brygada 1918    — weights 400, 500, 600, 700 (+ italics)   → assets/fonts/brygada-1918/
+Libre Franklin  — weights 100–900 (+ italics)              → assets/fonts/libre-franklin/
 ```
 
 ### Weights

@@ -1,0 +1,35 @@
+/* NBP brand fonts — self-hosted, extracted from nbp.pl
+ * Brygada 1918 (serif) — headings
+ * Libre Franklin (sans) — body / UI
+ * Paths are relative to this file (assets/fonts/fonts.css).
+ */
+
+/* ---------- Brygada 1918 ---------- */
+@font-face { font-family: "Brygada 1918"; font-style: normal; font-weight: 400; font-display: swap; src: url("./brygada-1918/Brygada1918-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: italic; font-weight: 400; font-display: swap; src: url("./brygada-1918/Brygada1918-Italic.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: normal; font-weight: 500; font-display: swap; src: url("./brygada-1918/Brygada1918-Medium.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: italic; font-weight: 500; font-display: swap; src: url("./brygada-1918/Brygada1918-MediumItalic.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: normal; font-weight: 600; font-display: swap; src: url("./brygada-1918/Brygada1918-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: italic; font-weight: 600; font-display: swap; src: url("./brygada-1918/Brygada1918-SemiBoldItalic.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: normal; font-weight: 700; font-display: swap; src: url("./brygada-1918/Brygada1918-Bold.ttf") format("truetype"); }
+@font-face { font-family: "Brygada 1918"; font-style: italic; font-weight: 700; font-display: swap; src: url("./brygada-1918/Brygada1918-BoldItalic.ttf") format("truetype"); }
+
+/* ---------- Libre Franklin ---------- */
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 100; font-display: swap; src: url("./libre-franklin/LibreFranklin-Thin.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 100; font-display: swap; src: url("./libre-franklin/LibreFranklin-ThinItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 200; font-display: swap; src: url("./libre-franklin/LibreFranklin-ExtraLight.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 200; font-display: swap; src: url("./libre-franklin/LibreFranklin-ExtraLightItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 300; font-display: swap; src: url("./libre-franklin/LibreFranklin-Light.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 300; font-display: swap; src: url("./libre-franklin/LibreFranklin-LightItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 400; font-display: swap; src: url("./libre-franklin/LibreFranklin-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 400; font-display: swap; src: url("./libre-franklin/LibreFranklin-Italic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 500; font-display: swap; src: url("./libre-franklin/LibreFranklin-Medium.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 500; font-display: swap; src: url("./libre-franklin/LibreFranklin-MediumItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 600; font-display: swap; src: url("./libre-franklin/LibreFranklin-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 600; font-display: swap; src: url("./libre-franklin/LibreFranklin-SemiBoldItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 700; font-display: swap; src: url("./libre-franklin/LibreFranklin-Bold.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 700; font-display: swap; src: url("./libre-franklin/LibreFranklin-BoldItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 800; font-display: swap; src: url("./libre-franklin/LibreFranklin-ExtraBold.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 800; font-display: swap; src: url("./libre-franklin/LibreFranklin-ExtraBoldItalic.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: normal; font-weight: 900; font-display: swap; src: url("./libre-franklin/LibreFranklin-Black.ttf") format("truetype"); }
+@font-face { font-family: "Libre Franklin"; font-style: italic; font-weight: 900; font-display: swap; src: url("./libre-franklin/LibreFranklin-BlackItalic.ttf") format("truetype"); }
