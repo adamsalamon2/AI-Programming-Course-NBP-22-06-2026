@@ -105,19 +105,11 @@
   },
   "plansDirectory": "./docs/plans",
   "hooks": {
-<<<<<<< HEAD
-    "PostToolUse": [
-=======
     "PreToolUse": [
->>>>>>> 90d0390d45fb9f638da9cb839584eeb1820a6934
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
-<<<<<<< HEAD
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/maven-dep-security-check.sh\""
-=======
             "type": "agent",
             "if": "Edit(pom.xml)",
             "prompt": "You are a security researcher reviewing a Maven dependency change. The agent is about to edit pom.xml. Examine `tool_input.new_string` for any new `<dependency>` blocks that are not present in `tool_input.old_string`. For each newly added dependency (groupId + artifactId + version): (1) search for known CVEs or security advisories, (2) check if the library is actively maintained and from a reputable source, (3) check for known supply-chain attacks or typosquatting risks. If you find serious security concerns, return {\"ok\": false, \"reason\": \"<concise description of the risk and the affected dependency>\"}. If all dependencies appear safe or no new dependencies are being added, return {\"ok\": true}.",
@@ -128,7 +120,17 @@
             "if": "Write(pom.xml)",
             "prompt": "You are a security researcher reviewing a Maven dependency change. The agent is about to write pom.xml. Examine `tool_input.content` and extract all `<dependency>` entries. For each dependency (groupId + artifactId + version): (1) search for known CVEs or security advisories, (2) check if the library is actively maintained and from a reputable source, (3) check for known supply-chain attacks or typosquatting risks. If you find serious security concerns, return {\"ok\": false, \"reason\": \"<concise description of the risk and the affected dependency>\"}. If all dependencies appear safe, return {\"ok\": true}.",
             "timeout": 120
->>>>>>> 90d0390d45fb9f638da9cb839584eeb1820a6934
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/maven-dep-security-check.sh\""
           }
         ]
       }
