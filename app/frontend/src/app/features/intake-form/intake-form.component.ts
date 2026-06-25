@@ -197,7 +197,7 @@ export class IntakeFormComponent implements OnInit, OnDestroy {
 
     this.submitting.set(true);
     this.submitError.set(null);
-    this.form.disable();
+    this.form.disable({ emitEvent: false });
 
     this.session.initSession();
     const sessionId = this.session.sessionId()!;
@@ -219,7 +219,7 @@ export class IntakeFormComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.form.enable();
+        this.form.enable({ emitEvent: false });
         if (err?.type === 'validation' && err?.fieldErrors) {
           this.applyFieldErrors(err.fieldErrors);
         } else {
