@@ -1,0 +1,159 @@
+<div class="intake-page">
+  <mat-card class="intake-card">
+    <mat-card-header>
+      <mat-card-title>{{ labels.intake.title }}</mat-card-title>
+      <mat-card-subtitle>{{ labels.intake.description }}</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+        <!-- Request type -->
+        <div class="form-field-group">
+          <label class="field-label">{{ labels.intake.requestTypeLabel }}</label>
+          <mat-button-toggle-group
+            formControlName="requestType"
+            aria-label="Rodzaj wniosku"
+            class="request-type-toggle">
+            <mat-button-toggle value="COMPLAINT">
+              {{ labels.intake.requestTypes.COMPLAINT }}
+            </mat-button-toggle>
+            <mat-button-toggle value="RETURN">
+              {{ labels.intake.requestTypes.RETURN }}
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+          @if (requestTypeCtrl.touched && requestTypeCtrl.hasError('required')) {
+            <mat-error class="standalone-error">{{ labels.errors.required }}</mat-error>
+          }
+        </div>
+
+        <!-- Category -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ labels.intake.categoryLabel }}</mat-label>
+          <mat-select formControlName="category">
+            @for (key of categoryKeys; track key) {
+              <mat-option [value]="key">{{ categoryLabel(key) }}</mat-option>
+            }
+          </mat-select>
+          @if (categoryCtrl.touched && categoryCtrl.hasError('required')) {
+            <mat-error>{{ labels.errors.categoryRequired }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Model -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ labels.intake.modelLabel }}</mat-label>
+          <input matInput formControlName="model" [placeholder]="labels.intake.modelPlaceholder" />
+          @if (modelCtrl.touched && modelCtrl.hasError('required')) {
+            <mat-error>{{ labels.errors.modelRequired }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Purchase date -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ labels.intake.purchaseDateLabel }}</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="purchaseDate" [max]="today" />
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          @if (purchaseDateCtrl.touched && purchaseDateCtrl.hasError('required')) {
+            <mat-error>{{ labels.errors.purchaseDateRequired }}</mat-error>
+          }
+          @if (purchaseDateCtrl.touched && (purchaseDateCtrl.hasError('matDatepickerMax') || purchaseDateCtrl.hasError('futureDate'))) {
+            <mat-error>{{ labels.errors.futureDateNotAllowed }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Reason -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>
+            {{ labels.intake.reasonLabel }}
+            @if (requestTypeCtrl.value === 'COMPLAINT') {
+              <span class="field-badge required">{{ labels.intake.reasonRequired }}</span>
+            } @else {
+              <span class="field-badge optional">{{ labels.intake.reasonOptional }}</span>
+            }
+          </mat-label>
+          <textarea
+            matInput
+            formControlName="reason"
+            rows="4"
+            [placeholder]="requestTypeCtrl.value === 'COMPLAINT'
+              ? labels.intake.reasonPlaceholderRequired
+              : labels.intake.reasonPlaceholderOptional">
+          </textarea>
+          @if (reasonCtrl.touched && reasonCtrl.hasError('required')) {
+            <mat-error>{{ labels.errors.reasonRequired }}</mat-error>
+          }
+        </mat-form-field>
+
+        <!-- Image upload -->
+        <div class="form-field-group image-upload">
+          <label class="field-label">{{ labels.intake.imageLabel }}</label>
+          <p class="image-hint">{{ labels.intake.imageHint }}</p>
+
+          <input
+            #fileInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="visually-hidden"
+            (change)="onFileSelected($event)"
+            aria-label="Prześlij zdjęcie urządzenia" />
+
+          @if (!selectedImage()) {
+            <button
+              type="button"
+              mat-stroked-button
+              color="primary"
+              (click)="fileInput.click()">
+              <mat-icon>upload</mat-icon>
+              {{ labels.intake.imageSelectButton }}
+            </button>
+          } @else {
+            <div class="image-preview-wrap">
+              <img [src]="imagePreview()" alt="Podgląd zdjęcia" class="image-preview" />
+              <div class="image-actions">
+                <button type="button" mat-stroked-button (click)="fileInput.click()">
+                  <mat-icon>swap_horiz</mat-icon>
+                  {{ labels.intake.imageReplaceButton }}
+                </button>
+                <button type="button" mat-stroked-button color="warn" (click)="removeImage()">
+                  <mat-icon>delete</mat-icon>
+                  {{ labels.intake.imageRemoveButton }}
+                </button>
+              </div>
+            </div>
+          }
+
+          @if (imageError()) {
+            <mat-error class="standalone-error">{{ imageError() }}</mat-error>
+          }
+        </div>
+
+        <!-- Submit error -->
+        @if (submitError()) {
+          <div class="submit-error" role="alert">
+            <mat-icon color="warn">error_outline</mat-icon>
+            <span>{{ submitError() }}</span>
+          </div>
+        }
+
+        <!-- Submit button -->
+        <div class="submit-row">
+          <button
+            type="submit"
+            mat-flat-button
+            color="primary"
+            [disabled]="submitting()">
+            @if (submitting()) {
+              <mat-spinner diameter="20" class="btn-spinner"></mat-spinner>
+              {{ labels.intake.submittingButton }}
+            } @else {
+              {{ labels.intake.submitButton }}
+            }
+          </button>
+        </div>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
