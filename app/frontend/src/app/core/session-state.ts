@@ -70,6 +70,11 @@ export class SessionState {
     });
   }
 
+  /** Remove the last message (used to drop an empty streaming bubble on error) */
+  removeLastMessage(): void {
+    this._messages.update((msgs) => msgs.slice(0, -1));
+  }
+
   /** Reset all state — used when starting a new case */
   reset(): void {
     this._sessionId.set(null);

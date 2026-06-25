@@ -1,0 +1,83 @@
+<div class="chat-page">
+
+  <!-- Case summary panel -->
+  @if (caseSummary) {
+    <mat-expansion-panel class="case-summary case-summary--panel">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ labels.chat.summaryTitle }}</mat-panel-title>
+      </mat-expansion-panel-header>
+      <div class="case-summary__content">
+        <dl class="case-summary__dl">
+          <dt>Rodzaj wniosku</dt>
+          <dd>{{ caseSummary.requestType === 'COMPLAINT' ? labels.intake.requestTypes.COMPLAINT : labels.intake.requestTypes.RETURN }}</dd>
+          <dt>{{ labels.intake.categoryLabel }}</dt>
+          <dd>{{ labels.categories[caseSummary.category] }}</dd>
+          <dt>{{ labels.intake.modelLabel }}</dt>
+          <dd>{{ caseSummary.model }}</dd>
+          <dt>{{ labels.intake.purchaseDateLabel }}</dt>
+          <dd>{{ caseSummary.purchaseDate }}</dd>
+        </dl>
+      </div>
+    </mat-expansion-panel>
+  }
+
+  <!-- Message list -->
+  <div class="message-list" aria-live="polite" aria-label="Rozmowa z asystentem">
+    @for (msg of messages; track $index) {
+      <app-message-bubble [role]="msg.role" [content]="msg.content"></app-message-bubble>
+    }
+
+    <!-- Typing indicator -->
+    <app-typing-indicator [streaming]="streaming()"></app-typing-indicator>
+
+    <!-- Per-turn error -->
+    @if (turnError()) {
+      <div class="turn-error" role="alert">
+        <mat-icon color="warn">error_outline</mat-icon>
+        <span>{{ turnError() }}</span>
+        <button mat-stroked-button color="primary" (click)="retryLastMessage()">
+          {{ labels.chat.retryButton }}
+        </button>
+      </div>
+    }
+
+    <!-- Session not found -->
+    @if (sessionNotFound()) {
+      <div class="session-error" role="alert">
+        <mat-icon color="warn">warning</mat-icon>
+        <span>{{ labels.chat.sessionExpired }}</span>
+        <button mat-flat-button color="primary" (click)="startNewCase()">
+          {{ labels.chat.startNewCase }}
+        </button>
+      </div>
+    }
+
+    <div #messageListEnd class="scroll-anchor"></div>
+  </div>
+
+  <!-- Input row -->
+  <div class="input-row">
+    <mat-form-field appearance="outline" class="input-field">
+      <input
+        matInput
+        [formControl]="inputCtrl"
+        [placeholder]="labels.chat.inputPlaceholder"
+        (keydown)="onKeydown($event)"
+        autocomplete="off" />
+    </mat-form-field>
+    <button
+      mat-icon-button
+      color="primary"
+      aria-label="Wyślij wiadomość"
+      [disabled]="inputCtrl.invalid || streaming() || sessionNotFound()"
+      (click)="sendMessage()">
+      <mat-icon>send</mat-icon>
+    </button>
+  </div>
+
+  <!-- Start new case link -->
+  <div class="new-case-row">
+    <button mat-button (click)="startNewCase()">{{ labels.chat.startNewCase }}</button>
+  </div>
+
+</div>
