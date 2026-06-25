@@ -60,41 +60,87 @@ function createMinimalJpeg(comment = 'unused-device'): Buffer {
 }
 
 /**
- * Creates a minimal valid PNG (1×1 transparent pixel).
+ * Creates a minimal valid PNG (1×1 white RGB pixel).
+ *
+ * CRC values are computed correctly using zlib/crc32 — not hardcoded guesses.
+ * Verified decodable by Java ImageIO (javax.imageio.ImageIO.read).
  */
 function createMinimalPng(): Buffer {
-  // PNG signature + IHDR + IDAT + IEND for a 1×1 RGBA image
-  return Buffer.from([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG signature
-    0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, // IHDR length + type
-    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // width=1, height=1
-    0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, // bit depth=8, color=RGB, CRC
-    0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, // IDAT length + type
-    0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00, // compressed pixel data
-    0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc, // CRC
-    0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, // IEND length + type
-    0x44, 0xae, 0x42, 0x60, 0x82,                   // IEND CRC
+  const zlib = require('zlib') as typeof import('zlib');
+
+  // CRC32 table
+  const crcTable = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    crcTable[i] = c >>> 0;
+  }
+  function crc32(buf: Buffer): number {
+    let crc = 0xFFFFFFFF;
+    for (const b of buf) crc = (crcTable[(crc ^ b) & 0xFF] ^ (crc >>> 8)) >>> 0;
+    return ((crc ^ 0xFFFFFFFF) >>> 0);
+  }
+  function chunk(type: string, data: Buffer): Buffer {
+    const typeBytes = Buffer.from(type, 'ascii');
+    const lenBuf = Buffer.alloc(4);
+    lenBuf.writeUInt32BE(data.length);
+    const crcInput = Buffer.concat([typeBytes, data]);
+    const crcBuf = Buffer.alloc(4);
+    crcBuf.writeUInt32BE(crc32(crcInput));
+    return Buffer.concat([lenBuf, typeBytes, data, crcBuf]);
+  }
+
+  // IHDR: 1×1, 8-bit RGB
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(1, 0); // width
+  ihdr.writeUInt32BE(1, 4); // height
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // color type RGB (no alpha)
+
+  // Raw scanline: filter byte 0 (None) + white pixel (R=255, G=255, B=255)
+  const rawScanline = Buffer.from([0x00, 0xff, 0xff, 0xff]);
+  const compressed = zlib.deflateSync(rawScanline, { level: 9 });
+
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), // PNG signature
+    chunk('IHDR', ihdr),
+    chunk('IDAT', compressed),
+    chunk('IEND', Buffer.alloc(0)),
   ]);
 }
 
 /**
- * Creates a minimal valid WebP (1×1 pixel).
- * Using the simplest VP8L lossless encoding.
+ * Creates a minimal valid WebP (1×1 pixel, VP8L lossless).
+ *
+ * The RIFF container wraps a VP8L chunk with correct bitstream.
+ * Accepted by TwelveMonkeys imageio-webp (backend dependency).
+ * Note: base Java ImageIO returns null for WebP without TwelveMonkeys —
+ * this is expected; the backend's runtime classpath includes TwelveMonkeys.
  */
 function createMinimalWebp(): Buffer {
-  // Minimal WebP RIFF container (VP8L, lossless, 1x1)
-  return Buffer.from([
-    0x52, 0x49, 0x46, 0x46, // "RIFF"
-    0x24, 0x00, 0x00, 0x00, // file size (36 bytes)
-    0x57, 0x45, 0x42, 0x50, // "WEBP"
-    0x56, 0x50, 0x38, 0x4c, // "VP8L"
-    0x14, 0x00, 0x00, 0x00, // chunk size
-    0x2f, 0x00, 0x00, 0x00, // signature 0x2f
-    0x00, 0x00, 0x00, 0xfe, // width=1, height=1 encoded
-    0x07, 0x22, 0x00, 0x00, // image data
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00,
+  // VP8L bitstream for a 1×1 white pixel (ARGB 0xFFFFFFFF)
+  const vp8lBitstream = Buffer.from([
+    0x2f, 0x00, 0x00, 0x00, 0xfe,
+    0x07, 0x10, 0x00, 0x00, 0x00,
+    0x00, 0xfe, 0xff, 0x03, 0x00,
   ]);
+
+  const chunkSize = vp8lBitstream.length;
+  const paddedChunk = chunkSize % 2 === 0
+    ? vp8lBitstream
+    : Buffer.concat([vp8lBitstream, Buffer.from([0x00])]);
+
+  const riffSize = 4 + 8 + paddedChunk.length; // 'WEBP' + chunk header + data
+  const buf = Buffer.alloc(12 + 8 + paddedChunk.length);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(riffSize, 4);
+  buf.write('WEBP', 8);
+  buf.write('VP8L', 12);
+  buf.writeUInt32LE(chunkSize, 16);
+  paddedChunk.copy(buf, 20);
+  return buf;
 }
 
 /**

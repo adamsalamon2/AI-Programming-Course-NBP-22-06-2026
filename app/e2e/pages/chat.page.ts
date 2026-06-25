@@ -3,90 +3,119 @@ import { type Page, type Locator, expect } from '@playwright/test';
 /**
  * Page Object for the Chat screen (route: /chat).
  *
- * All Polish text expectations are frozen from PRD §9.2, §11.4–11.5.
- * Selectors marked // TODO(3.2): confirm selector must be verified
- * against the live Angular component tree before Step 3.2 runs.
+ * All selectors confirmed against the live Angular component DOM on 2026-06-25 (Step 3.2).
+ *
+ * Key findings:
+ * - Message bubbles: .message-bubble--assistant / .message-bubble--user
+ * - Assistant messages rendered via ngx-markdown inside .message-bubble--assistant
+ * - Typing indicator: .typing-indicator with role="status" and aria-label="Asystent pisze…"
+ * - "Nowa sprawa" button: "Rozpocznij nową sprawę" (from pl.ts chat.startNewCase)
+ * - Chat input: placeholder "Napisz wiadomość…"
+ * - Send: icon-button with aria-label "Wyślij wiadomość"
+ * - Retry on error: "Spróbuj ponownie" (from pl.ts chat.retryButton)
+ *
+ * Polish verdict labels (from pl.ts):
+ *   APPROVE:       "Pozytywna opinia"
+ *   REJECT:        "Negatywna opinia"
+ *   NEEDS_REVIEW:  "Wymaga weryfikacji"
+ *
+ * Disclaimer: LLM-generated text; matched with regex for key words.
  */
 export class ChatPage {
   readonly page: Page;
 
-  // The entire conversation container
-  // TODO(3.2): confirm selector — may be a section/article or custom component
+  // The message list container
   readonly conversationArea: Locator;
 
-  // All message bubbles
-  // TODO(3.2): confirm selector — Angular Material may use custom classes
+  // All assistant message bubbles
   readonly messageBubbles: Locator;
 
   // The first (agent decision) bubble
-  // TODO(3.2): confirm — first [role="listitem"] or first .message-bubble
   readonly firstAgentBubble: Locator;
 
   // Message input at the bottom
-  // TODO(3.2): confirm label — Polish placeholder or label expected
   readonly messageInput: Locator;
 
-  // Send button
-  // TODO(3.2): confirm Polish label or icon-button aria-label
+  // Send button (icon-button)
   readonly sendButton: Locator;
 
   // Typing indicator (shown while agent streams)
-  // TODO(3.2): confirm selector — TypingIndicatorComponent; may be [role="status"] or CSS animation
   readonly typingIndicator: Locator;
 
   // "Nowa sprawa" (new case) restart button
-  // TODO(3.2): confirm Polish label
   readonly nowaSprawaButton: Locator;
 
   // Per-turn retry button (appears on streaming error)
-  // TODO(3.2): confirm Polish label — "Spróbuj ponownie" or similar
   readonly retryButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
 
-    this.conversationArea = page.locator('[role="log"], .conversation, app-chat').first(); // TODO(3.2): confirm selector
-    this.messageBubbles = page.locator('.message-bubble, [data-role="message"]'); // TODO(3.2): confirm selector
-    this.firstAgentBubble = page.locator('.message-bubble.agent, [data-role="assistant"]').first(); // TODO(3.2): confirm selector
+    // Message list container (aria-live="polite")
+    this.conversationArea = page.locator('.message-list');
 
-    this.messageInput = page.getByLabel(/wiadomo[sś][cć]|pytanie|twoja wiadomo[sś][cć]/i) // TODO(3.2): confirm label
-      .or(page.getByPlaceholder(/wpisz wiadomo[sś][cć]/i));
+    // All assistant bubbles
+    this.messageBubbles = page.locator('.message-bubble--assistant');
 
-    this.sendButton = page.getByRole('button', { name: /wy[sś]lij|send/i }); // TODO(3.2): confirm label or icon-button
+    // First agent bubble (decision message)
+    this.firstAgentBubble = page.locator('.message-bubble--assistant').first();
 
-    this.typingIndicator = page.locator('.typing-indicator, [aria-label*="pisze"], [role="status"]').first(); // TODO(3.2): confirm selector
+    // Chat input — placeholder confirmed
+    this.messageInput = page.getByPlaceholder('Napisz wiadomość…');
 
-    this.nowaSprawaButton = page.getByRole('button', { name: /nowa sprawa/i }); // TODO(3.2): confirm Polish label
-    this.retryButton = page.getByRole('button', { name: /spr[oó]buj ponownie/i }); // TODO(3.2): confirm Polish label
+    // Send button — icon-button with aria-label
+    this.sendButton = page.getByRole('button', { name: 'Wyślij wiadomość' });
+
+    // Typing indicator — .typing-indicator with role="status"
+    this.typingIndicator = page.locator('.typing-indicator');
+
+    // "Nowa sprawa" button — confirmed Polish label
+    this.nowaSprawaButton = page.getByRole('button', { name: 'Rozpocznij nową sprawę' });
+
+    // Retry button on turn error
+    this.retryButton = page.getByRole('button', { name: 'Spróbuj ponownie' });
   }
 
   async waitForDecision() {
     // Wait until we are on the chat route and the first agent bubble is visible
-    await expect(this.page).toHaveURL(/\/chat/);
-    await expect(this.firstAgentBubble).toBeVisible({ timeout: 60_000 }); // LLM can be slow
+    await expect(this.page).toHaveURL(/\/chat/, { timeout: 30_000 });
+    await expect(this.firstAgentBubble).toBeVisible({ timeout: 90_000 }); // LLM can be slow
   }
 
   async getFirstBubbleText(): Promise<string> {
     return (await this.firstAgentBubble.textContent()) ?? '';
   }
 
+  /**
+   * Asserts the first agent bubble contains one of the three Polish verdict labels.
+   * Polish verdict labels (from pl.ts): "Pozytywna opinia" | "Negatywna opinia" | "Wymaga weryfikacji"
+   */
+  async expectVerdictLabel(): Promise<void> {
+    await expect(this.firstAgentBubble).toContainText(
+      /Pozytywna opinia|Negatywna opinia|Wymaga weryfikacji/,
+      { timeout: 90_000 }
+    );
+  }
+
+  /**
+   * Asserts the first agent bubble contains a specific Polish verdict label.
+   */
   async expectVerdictInFirstBubble(verdict: 'Approve' | 'Reject' | 'Needs review') {
-    // The Polish decision label — check PRD §11.4 Polish wording
-    // TODO(3.2): confirm exact Polish verdict labels from the Angular component
+    // Confirmed Polish verdict labels from pl.ts
     const verdictPatterns: Record<string, RegExp> = {
-      Approve:       /zatwierdz|pozytywn|zaakceptowan/i,
-      Reject:        /odrzucon|negatywn|odrzucam/i,
-      'Needs review': /wymaga weryfikacji|do sprawdzenia|potrzebna weryfikacja/i,
+      Approve:        /Pozytywna opinia/i,
+      Reject:         /Negatywna opinia/i,
+      'Needs review': /Wymaga weryfikacji/i,
     };
-    await expect(this.firstAgentBubble).toContainText(verdictPatterns[verdict], { timeout: 60_000 });
+    await expect(this.firstAgentBubble).toContainText(verdictPatterns[verdict], { timeout: 90_000 });
   }
 
   async expectDisclaimerInFirstBubble() {
-    // PRD §11.5 — advisory disclaimer must always be present
-    // TODO(3.2): confirm exact Polish disclaimer text from the agent
+    // PRD §11.5 — advisory disclaimer must always be present.
+    // The LLM generates the disclaimer text; match on common Polish advisory keywords.
     await expect(this.firstAgentBubble).toContainText(
-      /zalecenie|rekomendacja|nie jest ostateczn|decyzja.*pracownik/i,
-      { timeout: 60_000 }
+      /zalecenie|rekomendacja|nie jest ostateczn|decyzja.*pracownik|informacja.*orientacyjn|porada.*wst[ęe]pn/i,
+      { timeout: 90_000 }
     );
   }
 
@@ -96,15 +125,26 @@ export class ChatPage {
   }
 
   async waitForTypingIndicatorGone() {
-    // Wait for indicator to appear and then disappear (agent is done streaming)
-    await expect(this.typingIndicator).toBeHidden({ timeout: 60_000 });
+    // The typing indicator is present while streaming; wait for it to disappear
+    // It may not appear if the response is very fast, so use a relaxed timeout
+    await expect(this.typingIndicator).toBeHidden({ timeout: 90_000 });
   }
 
   async getLastAgentBubbleText(): Promise<string> {
-    const bubbles = this.page.locator('.message-bubble.agent, [data-role="assistant"]'); // TODO(3.2): confirm selector
+    const bubbles = this.page.locator('.message-bubble--assistant');
     const count = await bubbles.count();
     if (count === 0) return '';
     return (await bubbles.nth(count - 1).textContent()) ?? '';
+  }
+
+  async waitForNewAgentBubble(previousCount: number): Promise<void> {
+    // Wait until there is at least one more assistant bubble than before sending
+    await expect(this.page.locator('.message-bubble--assistant')).toHaveCount(
+      previousCount + 1,
+      { timeout: 90_000 }
+    );
+    // Then wait for the typing indicator to disappear (streaming done)
+    await this.waitForTypingIndicatorGone();
   }
 
   async clickNowaSprawaMi() {

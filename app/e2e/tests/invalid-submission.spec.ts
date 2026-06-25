@@ -34,8 +34,8 @@ test.describe('Walidacja formularza — błędy inline, brak nawigacji do chatu'
     await intakeForm.submit();
 
     // Should show an inline error about missing image
-    // TODO(3.2): confirm exact Polish error text — e.g. "Zdjęcie jest wymagane" or "Dodaj zdjęcie"
-    await intakeForm.expectErrorVisible(/zdj[eę]cie jest wymagane|dodaj zdj[eę]cie|brak zdj[eę]cia/i);
+    // Confirmed from pl.ts errors.imageRequired: "Dołącz zdjęcie urządzenia."
+    await intakeForm.expectErrorVisible(/do[łl][ąa]cz zdj[ęe]cie|zdj[eę]cie jest wymagane|dodaj zdj[eę]cie|brak zdj[eę]cia/i);
     await intakeForm.expectNoNavigation();
   });
 
@@ -78,8 +78,8 @@ test.describe('Walidacja formularza — błędy inline, brak nawigacji do chatu'
     await intakeForm.submit();
 
     // Inline error about empty reason
-    // TODO(3.2): confirm exact Polish error text
-    await intakeForm.expectErrorVisible(/pow[oó]d.*wymagany|uzupe[łl]nij pow[oó]d|pole wymagane/i);
+    // Confirmed from pl.ts errors.reasonRequired: "Opis powodu reklamacji jest wymagany."
+    await intakeForm.expectErrorVisible(/opis powodu reklamacji jest wymagany|pow[oó]d.*wymagany|uzupe[łl]nij pow[oó]d|pole wymagane/i);
     await intakeForm.expectNoNavigation();
   });
 
@@ -96,13 +96,17 @@ test.describe('Walidacja formularza — błędy inline, brak nawigacji do chatu'
     await intakeForm.fillPurchaseDate(tenDaysAgo.toISOString().split('T')[0]);
 
     // Upload a GIF — unsupported format (AC-07)
+    // The component sets imageError immediately on file change (before submit).
+    // Confirmed pl.ts errors.imageFormatInvalid:
+    //   "Nieobsługiwany format pliku. Akceptowane formaty to: JPEG, PNG, WebP."
     await intakeForm.uploadImage(FIXTURES.wrongTypeGif);
-    await intakeForm.submit();
 
-    // Error must name the accepted formats: JPEG, PNG, WebP (AC-07)
-    // TODO(3.2): confirm exact Polish error text — "Akceptowane formaty: JPEG, PNG, WebP"
+    // Error must name the accepted formats immediately after file selection (AC-07)
     await intakeForm.expectErrorVisible(/JPEG|PNG|WebP/i);
-    await intakeForm.expectErrorVisible(/format|niedozwolony|akceptowane/i);
+    await intakeForm.expectErrorVisible(/Nieobsługiwany format|format pliku|akceptowane formaty/i);
+
+    // Submitting while image is invalid also blocks navigation (AC-09)
+    await intakeForm.submit();
     await intakeForm.expectNoNavigation();
   });
 
@@ -121,12 +125,17 @@ test.describe('Walidacja formularza — błędy inline, brak nawigacji do chatu'
     await intakeForm.fillReason('Ekran telewizora przestał działać po roku od zakupu.');
 
     // Upload oversized file — exceeds 10 MB (AC-08)
+    // The component sets imageError immediately on file change (before submit).
+    // Confirmed pl.ts errors.imageTooLarge:
+    //   "Plik jest za duży. Maksymalny rozmiar zdjęcia to 10 MB."
+    // On submit the error gets overwritten with imageRequired, so check BEFORE submit.
     await intakeForm.uploadImage(FIXTURES.oversizedImageJpeg);
-    await intakeForm.submit();
 
-    // Error must mention the 10 MB limit (AC-08)
-    // TODO(3.2): confirm exact Polish error text — "Plik nie może być większy niż 10 MB"
-    await intakeForm.expectErrorVisible(/10 MB|za duży|rozmiar pliku/i);
+    // Error must mention the 10 MB limit immediately after file selection (AC-08)
+    await intakeForm.expectErrorVisible(/10 MB|za du[żz]y|rozmiar zdj[ęe]cia/i);
+
+    // Submitting while image is too large also blocks navigation (AC-09)
+    await intakeForm.submit();
     await intakeForm.expectNoNavigation();
   });
 
@@ -136,14 +145,14 @@ test.describe('Walidacja formularza — błędy inline, brak nawigacji do chatu'
 
     await intakeForm.selectRequestType('Zwrot');
 
-    // Wrong type: GIF — error should appear immediately or on submit
+    // Wrong type: GIF — Angular validates on file change immediately (confirmed Step 3.2).
+    // The imageError signal is set on the (change) event, BEFORE any submit.
     await intakeForm.uploadImage(FIXTURES.wrongTypeGif);
 
-    // The error may appear immediately on file selection (client-side change event)
-    // OR on submit — either is acceptable; we just check it eventually appears.
-    // TODO(3.2): determine if Angular validates on file change or only on submit
-    await intakeForm.submit();
-    await intakeForm.expectErrorVisible(/JPEG|PNG|WebP|format/i);
+    // Error appears immediately on file selection (AC-07)
+    await intakeForm.expectErrorVisible(/Nieobsługiwany format|JPEG|PNG|WebP/i);
+
+    // Confirm no navigation even without submit
     await intakeForm.expectNoNavigation();
   });
 

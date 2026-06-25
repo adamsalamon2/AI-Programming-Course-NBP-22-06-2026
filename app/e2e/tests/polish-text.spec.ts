@@ -11,10 +11,7 @@ import { FIXTURES } from '../fixtures/index';
  *   §6 ACs: AC-01, AC-02, AC-25
  *   ADR-003 §3 (pl constants, Polish labels)
  *
- * These tests verify that key labels, buttons, errors, and decision text
- * are rendered in Polish on both the intake form screen and the chat screen.
- *
- * Selector assumptions are flagged; confirm against live DOM at Step 3.2.
+ * All selectors confirmed against live DOM (Step 3.2).
  */
 test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', () => {
 
@@ -23,8 +20,9 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
     await intakeForm.goto();
 
     // The two request-type options must be labeled in Polish (AC-01)
-    await expect(page.getByText('Reklamacja')).toBeVisible();
-    await expect(page.getByText('Zwrot')).toBeVisible();
+    // Confirmed: radiogroup "Rodzaj wniosku" with radio "Reklamacja" / radio "Zwrot"
+    await expect(page.getByRole('radio', { name: 'Reklamacja' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Zwrot' })).toBeVisible();
   });
 
   test('AC-02 lista kategorii sprzętu zawiera polskie nazwy', async ({ page }) => {
@@ -35,6 +33,7 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
     await intakeForm.categorySelect.click();
 
     // All 11 predefined categories must be present in Polish (PRD §8 Functional)
+    // Confirmed: mat-option renders as role="option" in a listbox overlay
     const expectedCategories = [
       'Smartfony', 'Laptopy', 'Tablety', 'Telewizory', 'Słuchawki',
       'Smartwatche', 'Konsole do gier', 'Sprzęt audio',
@@ -42,7 +41,7 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
     ];
 
     for (const category of expectedCategories) {
-      await expect(page.getByRole('option', { name: category })).toBeVisible(); // TODO(3.2): confirm mat-option role
+      await expect(page.getByRole('option', { name: category })).toBeVisible();
     }
 
     // Close the dropdown
@@ -53,33 +52,27 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
     const intakeForm = new IntakeFormPage(page);
     await intakeForm.goto();
 
-    // Key form labels must be in Polish
-    // TODO(3.2): confirm exact Polish label strings from the Angular template
+    // Confirmed exact Polish label strings from the Angular template / pl.ts:
+    // "Kategoria sprzętu", "Nazwa / model urządzenia", "Data zakupu",
+    // "Opis powodu", "Zdjęcie urządzenia"
 
-    // Category label
-    await expect(page.getByText(/Kategoria sprzętu|Kategoria/i)).toBeVisible();
-
-    // Model/name label
-    await expect(page.getByText(/Nazwa modelu|Model|Nazwa/i)).toBeVisible();
-
-    // Purchase date label
-    await expect(page.getByText(/Data zakupu/i)).toBeVisible();
-
-    // Reason label (some variant)
-    await expect(page.getByText(/Pow[óo]d|Opis problemu/i)).toBeVisible();
-
-    // Photo upload label
-    await expect(page.getByText(/Zdj[ęe]cie|Prześlij zdj[ęe]cie|Dodaj zdj[ęe]cie/i)).toBeVisible();
+    // Use exact: true or role-based locators to avoid strict-mode violation
+    // "Zdjęcie urządzenia" appears in both a label and the subtitle sentence
+    await expect(page.getByText('Kategoria sprzętu', { exact: true }).first()).toBeVisible();
+    await expect(page.getByLabel('Nazwa / model urządzenia')).toBeVisible();
+    await expect(page.getByLabel(/Data zakupu/)).toBeVisible();
+    await expect(page.getByText(/Opis powodu/).first()).toBeVisible();
+    // Target the field-label specifically; the subtitle also contains the phrase
+    await expect(page.getByText('Zdjęcie urządzenia', { exact: true })).toBeVisible();
   });
 
   test('AC-25 przycisk wysyłania jest po polsku', async ({ page }) => {
     const intakeForm = new IntakeFormPage(page);
     await intakeForm.goto();
 
-    // Submit button must have a Polish label
-    // TODO(3.2): confirm exact label — "Wyślij", "Prześlij", "Sprawdź" etc.
+    // Confirmed submit button label: "Wyślij wniosek" (from pl.ts intake.submitButton)
     await expect(
-      page.getByRole('button', { name: /wy[sś]lij|przeka[zź]|sprawdź|wy[sś]lij wniosek/i })
+      page.getByRole('button', { name: 'Wyślij wniosek' })
     ).toBeVisible();
   });
 
@@ -87,20 +80,24 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
     const intakeForm = new IntakeFormPage(page);
     await intakeForm.goto();
 
+    // Select Reklamacja first so all fields have validators active
+    await intakeForm.selectRequestType('Reklamacja');
+
     // Trigger validation errors by submitting an empty form
     await intakeForm.submit();
 
-    // All visible mat-error messages should contain Polish text (no English words like "required", "invalid")
+    // Wait for at least one mat-error to appear (Angular change detection)
     const errors = intakeForm.fieldErrors;
+    await expect(errors.first()).toBeVisible();
+
     const count = await errors.count();
 
-    // There should be at least one error
+    // There should be at least one error (category, model, date required)
     expect(count).toBeGreaterThan(0);
 
     // Each error should not contain common English validation words
     for (let i = 0; i < count; i++) {
       const errorText = await errors.nth(i).textContent() ?? '';
-      // English validation words that would indicate non-Polish UI
       const hasEnglishValidation = /\bis required\b|\binvalid\b|\bmust be\b|\bplease\b/i.test(errorText);
       expect(hasEnglishValidation, `Error message "${errorText}" is not in Polish`).toBe(false);
     }
@@ -110,22 +107,15 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
     const intakeForm = new IntakeFormPage(page);
     await intakeForm.goto();
 
-    // Select Reklamacja — reason should show as required
+    // Select Reklamacja — reason should show as "wymagane"
     await intakeForm.selectRequestType('Reklamacja');
-    // TODO(3.2): confirm Polish "wymagany" marker text or asterisk (*) aria-label
-    await expect(page.getByText(/wymagane|wymagany|\*/i).first()).toBeVisible();
+    // Confirmed: label becomes "Opis powodu wymagane"
+    await expect(page.getByLabel(/Opis powodu wymagane/i)).toBeVisible();
 
-    // Switch to Zwrot — reason should show as optional
+    // Switch to Zwrot — reason should show as "opcjonalne"
     await intakeForm.selectRequestType('Zwrot');
-    // TODO(3.2): confirm Polish "opcjonalny" text appears or "wymagany" disappears
-    const optionalText = page.getByText(/opcjonalny|opcjonalne|nieobowi[ąa]zkowy/i);
-    // Either optional text appears OR the required indicator disappears
-    const optionalVisible = await optionalText.isVisible().catch(() => false);
-    // Just assert the form is still rendered (the exact marker may vary)
-    await expect(intakeForm.reasonTextarea).toBeVisible();
-
-    // TODO(3.2): strengthen this assertion once the Angular template label wording is confirmed
-    void optionalVisible; // suppress unused variable warning — strengthened at 3.2
+    // Confirmed: label becomes "Opis powodu opcjonalne"
+    await expect(page.getByLabel(/Opis powodu opcjonalne/i)).toBeVisible();
   });
 
   test('AC-25 pierwszy komunikat agenta w chacie jest po polsku i zawiera zastrzeżenie', async ({ page }) => {
@@ -148,9 +138,9 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
 
     const firstBubble = await chatPage.getFirstBubbleText();
 
-    // AC-25: should not contain significant English (LLM was instructed to respond in Polish)
-    // We allow technical abbreviations like "OK", "LLM" but not full English sentences
-    const hasMostlyPolish = /[a-ząćęłńóśźż]/i.test(firstBubble); // contains Polish/Latin characters
+    // AC-25: should not contain significant English
+    // Contains Polish/Latin characters
+    const hasMostlyPolish = /[a-ząćęłńóśźż]/i.test(firstBubble);
     expect(hasMostlyPolish).toBe(true);
     expect(firstBubble.length).toBeGreaterThan(50); // substantive response
 
@@ -177,11 +167,11 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
 
     await chatPage.waitForDecision();
 
-    // The case summary (header/panel) should show submitted data in Polish labels
-    // TODO(3.2): confirm selector for case summary panel
-    await expect(page.getByText(/Reklamacja/i)).toBeVisible();
-    await expect(page.getByText(/Laptopy/i)).toBeVisible();
-    // Model name may appear as typed:
-    await expect(page.getByText(/Acer Predator/i)).toBeVisible();
+    // The case summary panel header (from pl.ts chat.summaryTitle: "Podsumowanie zgłoszenia")
+    // and the submitted data labels should be visible in Polish
+    // Confirmed from chat.component.html: "Rodzaj wniosku", category/model/date labels
+    await expect(page.getByText('Reklamacja')).toBeVisible();
+    await expect(page.getByText('Laptopy')).toBeVisible();
+    await expect(page.getByText(/Acer Predator/)).toBeVisible();
   });
 });
