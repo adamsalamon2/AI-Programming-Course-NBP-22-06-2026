@@ -1,0 +1,53 @@
+.message-bubble {
+  padding: 12px 16px;
+  border-radius: var(--nbp-radius-md);
+  max-width: 85%;
+  word-wrap: break-word;
+
+  &--assistant {
+    background: var(--nbp-bg-light);
+    border: 1px solid var(--nbp-border);
+    align-self: flex-start;
+    color: var(--nbp-text-body);
+
+    // Markdown content styling
+    :global(h1), :global(h2), :global(h3) {
+      font-family: "Brygada 1918", Georgia, "Times New Roman", serif;
+      color: var(--nbp-navy);
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    :global(p) {
+      margin: 0 0 8px;
+      line-height: 1.6;
+    }
+
+    :global(ul), :global(ol) {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+
+    :global(strong) {
+      font-weight: 600;
+      color: var(--nbp-text-secondary);
+    }
+
+    :global(em) {
+      font-style: italic;
+    }
+  }
+
+  &--user {
+    background: var(--nbp-navy);
+    color: var(--nbp-white);
+    align-self: flex-end;
+    border-radius: var(--nbp-radius-md) var(--nbp-radius-md) var(--nbp-radius-xs) var(--nbp-radius-md);
+  }
+
+  &__text {
+    display: block;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+}
