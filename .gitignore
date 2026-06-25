@@ -35,6 +35,11 @@ logs/
 .env.local
 .env.production
 
+# Backend build-generated policy copies (source of truth is docs/policies/)
+app/backend/src/main/resources/policies/
+# Backend build output
+app/backend/target/
+
 # OS
 .DS_Store
 Thumbs.db

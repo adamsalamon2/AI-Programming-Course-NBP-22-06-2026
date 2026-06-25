@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Spring Boot 4.1.0 GA — released 2026-06-10 (https://spring.io/blog/2026/06/10/spring-boot-4/).
+        This is the current stable release; no CVEs affect 4.1.x.
+        The 4.0.x CVE-2026-40976 (Actuator AuthZ bypass) was fixed in 4.0.6 and does not apply here.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>pl.nbp</groupId>
+    <artifactId>copilot</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>Hardware Service Decision Copilot</name>
+    <description>Multimodal AI assistant for hardware service decisions (complaint/return).</description>
+
+    <properties>
+        <java.version>21</java.version>
+        <!-- dependency versions -->
+        <openai-java.version>4.41.0</openai-java.version>
+        <thumbnailator.version>0.4.21</thumbnailator.version>
+        <twelvemonkeys.version>3.13.1</twelvemonkeys.version>
+        <!-- WireMock 3.13.2 is the latest patch; 3.13.0 had minor issues addressed in .2 -->
+        <wiremock.version>3.13.2</wiremock.version>
+    </properties>
+
+    <dependencies>
+        <!-- ===== Web Layer ===== -->
+        <!--
+            Boot 4 renames the web starter to spring-boot-starter-webmvc
+            (ADR-001 §5 and ADR-000 §8 — "Spring Boot 4.1.x on Java 21 toolchain").
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+
+        <!-- ===== Validation ===== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- ===== OpenAI Java SDK (OpenRouter via Chat Completions API) ===== -->
+        <!--
+            Official OpenAI Java SDK — no known CVEs for 4.41.0.
+            Used for vision analysis, decision calls, and SSE streaming (ADR-002).
+        -->
+        <dependency>
+            <groupId>com.openai</groupId>
+            <artifactId>openai-java</artifactId>
+            <version>${openai-java.version}</version>
+        </dependency>
+
+        <!-- ===== Image Processing ===== -->
+        <!-- Resize and recompress images to JPEG (ADR-001 §6) -->
+        <dependency>
+            <groupId>net.coobird</groupId>
+            <artifactId>thumbnailator</artifactId>
+            <version>${thumbnailator.version}</version>
+        </dependency>
+
+        <!-- WebP decode support for Java ImageIO (ADR-001 §6) -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>${twelvemonkeys.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-core</artifactId>
+            <version>${twelvemonkeys.version}</version>
+        </dependency>
+
+        <!-- ===== Test ===== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            Boot 4 MVC test slice — provides @WebMvcTest from the new package
+            org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest.
+            Supersedes the old spring-boot-test-autoconfigure WebMvcTest which
+            no longer ships in Boot 4.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+            WireMock 3.13.2 for integration tests — stubs OpenRouter HTTP responses.
+            Latest patch release; prior 3.13.x issues addressed. Test scope only.
+        -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock</artifactId>
+            <version>${wiremock.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!--
+                Copy policy markdown files from docs/policies/ into the classpath at build time.
+                The source of truth lives in docs/policies/; this copy lands in
+                src/main/resources/policies/ so PolicyLoader can read them via
+                ResourcePatternResolver (ADR-001 §3, ADR-000 §3).
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-policies</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/main/resources/policies</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/../../docs/policies</directory>
+                                    <includes>
+                                        <include>*.md</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
