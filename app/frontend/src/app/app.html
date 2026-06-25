@@ -1,0 +1,26 @@
+<header class="nbp-header" role="banner">
+  <div class="nbp-header__inner">
+    <div class="nbp-header__logo-wrap">
+      <img
+        src="assets/logo.svg"
+        alt="Narodowy Bank Polski"
+        class="nbp-header__logo"
+        width="164"
+        height="51"
+      />
+    </div>
+    <div class="nbp-header__title-wrap">
+      <span class="nbp-header__title">{{ labels.header.title }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="nbp-main">
+  <router-outlet />
+</main>
+
+<footer class="nbp-footer" role="contentinfo">
+  <div class="nbp-footer__inner">
+    <p class="nbp-footer__copyright">{{ labels.footer.copyright }}</p>
+  </div>
+</footer>

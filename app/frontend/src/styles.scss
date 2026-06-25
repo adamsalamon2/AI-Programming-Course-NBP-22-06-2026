@@ -1,0 +1,206 @@
+// Angular Material theming — @use must come first in SCSS
+@use '@angular/material' as mat;
+
+// ─── NBP Custom Theme ─────────────────────────────────────────────────────────
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+    typography: (
+      brand-family: '"Libre Franklin", -apple-system, Arial, "Noto Sans", sans-serif',
+      bold-weight: 700,
+      medium-weight: 500,
+      regular-weight: 400,
+    ),
+    density: 0,
+  ));
+
+  // NBP CSS custom properties
+  --nbp-navy:           #152E52;
+  --nbp-gold:           #BDAD7D;
+  --nbp-blue:           #4A74B0;
+  --nbp-white:          #FFFFFF;
+  --nbp-bg-light:       #F7F7F7;
+  --nbp-bg-muted:       #C4C4C4;
+  --nbp-text-body:      #464646;
+  --nbp-text-muted:     #707070;
+  --nbp-text-secondary: #323232;
+  --nbp-border:         #BFCEDD;
+  --nbp-border-light:   #E5E5E5;
+
+  // Override Material system-level tokens with NBP palette
+  --mat-sys-primary:              var(--nbp-navy);
+  --mat-sys-on-primary:           var(--nbp-white);
+  --mat-sys-primary-container:    #e8edf4;
+  --mat-sys-on-primary-container: var(--nbp-navy);
+
+  --mat-sys-secondary:              var(--nbp-gold);
+  --mat-sys-on-secondary:           var(--nbp-navy);
+  --mat-sys-secondary-container:    #f5f0e4;
+  --mat-sys-on-secondary-container: var(--nbp-navy);
+
+  --mat-sys-tertiary:   var(--nbp-blue);
+  --mat-sys-on-tertiary: var(--nbp-white);
+
+  --mat-sys-surface:            var(--nbp-white);
+  --mat-sys-on-surface:         var(--nbp-text-body);
+  --mat-sys-surface-variant:    var(--nbp-bg-light);
+  --mat-sys-on-surface-variant: var(--nbp-text-body);
+
+  --mat-sys-outline:         var(--nbp-border);
+  --mat-sys-outline-variant: var(--nbp-border-light);
+
+  // NBP border radii (2–6 px — restrained, formal)
+  --nbp-radius-xs: 2px;
+  --nbp-radius-sm: 4px;
+  --nbp-radius-md: 6px;
+}
+
+// ─── Self-hosted fonts (CSS @import URL — allowed after @use) ────────────────
+// Using url() syntax so Sass treats it as a plain CSS @import, not a Sass one.
+@import url("assets/fonts/fonts.css");
+
+// ─── Reset / Base ─────────────────────────────────────────────────────────────
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color-scheme: light;
+}
+
+body {
+  font-family: "Libre Franklin", -apple-system, Arial, "Noto Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--nbp-text-body);
+  background-color: var(--nbp-white);
+}
+
+// ─── Typography ──────────────────────────────────────────────────────────────
+h1,
+h2 {
+  font-family: "Brygada 1918", Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  line-height: 1.48;
+  color: var(--nbp-navy);
+}
+
+h1 { font-size: 27px; }
+h2 { font-size: 27px; }
+
+h3 {
+  font-family: "Libre Franklin", -apple-system, Arial, "Noto Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333333;
+}
+
+a {
+  color: var(--nbp-blue);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+.nbp-header {
+  background-color: var(--nbp-navy);
+  color: var(--nbp-white);
+  padding: 0;
+  width: 100%;
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 24px;
+    min-height: 64px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  // White strip ensures the dark SVG logo stays legible on navy background
+  &__logo-wrap {
+    background-color: var(--nbp-white);
+    padding: 8px 12px;
+    border-radius: var(--nbp-radius-sm);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  &__logo {
+    display: block;
+    width: 164px;
+    height: auto;
+  }
+
+  &__title-wrap {
+    flex: 1;
+  }
+
+  &__title {
+    font-family: "Libre Franklin", -apple-system, Arial, "Noto Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--nbp-white);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────────────
+.nbp-footer {
+  background-color: var(--nbp-navy);
+  color: var(--nbp-white);
+  padding: 0;
+  width: 100%;
+  margin-top: auto;
+
+  &__inner {
+    padding: 16px 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  &__copyright {
+    margin: 0;
+    font-size: 13px;
+    color: var(--nbp-white);
+    opacity: 0.85;
+  }
+}
+
+// ─── Angular Material component overrides (NBP style) ────────────────────────
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-flat-button,
+.mat-mdc-stroked-button {
+  border-radius: var(--nbp-radius-sm) !important;
+  font-family: "Libre Franklin", -apple-system, Arial, "Noto Sans", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mat-mdc-form-field .mdc-text-field {
+  border-radius: var(--nbp-radius-md) !important;
+}
+
+.mat-mdc-card {
+  border-radius: var(--nbp-radius-md) !important;
+  border: 1px solid var(--nbp-border) !important;
+}
