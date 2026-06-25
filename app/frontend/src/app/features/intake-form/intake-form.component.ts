@@ -1,6 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { Router } from '@angular/router';
 
 // Angular Material
@@ -52,7 +53,7 @@ function notFutureDateValidator(control: AbstractControl): ValidationErrors | nu
   templateUrl: './intake-form.component.html',
   styleUrl: './intake-form.component.scss',
 })
-export class IntakeFormComponent implements OnInit {
+export class IntakeFormComponent implements OnInit, OnDestroy {
   readonly labels = pl;
   readonly today = new Date();
 
@@ -73,6 +74,8 @@ export class IntakeFormComponent implements OnInit {
   /** Retryable backend error message */
   readonly submitError = signal<string | null>(null);
 
+  private subscriptions = new Subscription();
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly caseApi: CaseApiService,
@@ -88,6 +91,37 @@ export class IntakeFormComponent implements OnInit {
       purchaseDate: [null as Date | null, [Validators.required, notFutureDateValidator]],
       reason: [''],
     });
+
+    // React to request type changes to update reason required state
+    const sub = this.form.get('requestType')!.valueChanges.subscribe((type) => {
+      this.updateReasonValidators(type);
+    });
+    this.subscriptions.add(sub);
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  /** Returns true when reason is required (COMPLAINT type selected) */
+  isReasonRequired(): boolean {
+    return this.requestTypeCtrl.value === 'COMPLAINT';
+  }
+
+  private updateReasonValidators(type: RequestType | null): void {
+    const reasonCtrl = this.form.get('reason')!;
+    if (type === 'COMPLAINT') {
+      reasonCtrl.setValidators(Validators.required);
+    } else {
+      reasonCtrl.clearValidators();
+      // Clear stale required error when switching away from COMPLAINT
+      const errors = reasonCtrl.errors;
+      if (errors) {
+        const { required: _removed, ...remaining } = errors;
+        reasonCtrl.setErrors(Object.keys(remaining).length ? remaining : null);
+      }
+    }
+    reasonCtrl.updateValueAndValidity({ emitEvent: false });
   }
 
   get requestTypeCtrl() { return this.form.get('requestType')!; }
