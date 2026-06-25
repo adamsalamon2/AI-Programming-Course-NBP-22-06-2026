@@ -1,6 +1,6 @@
 package pl.nbp.copilot.ai;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.models.ResponseFormatJsonObject;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
