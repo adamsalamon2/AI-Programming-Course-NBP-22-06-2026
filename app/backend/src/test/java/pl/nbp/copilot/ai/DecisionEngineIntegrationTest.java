@@ -1,10 +1,9 @@
 package pl.nbp.copilot.ai;
 
-import tools.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
-import com.openai.models.chat.completions.ChatCompletion;
-import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import com.openai.models.chat.completions.ChatCompletionMessage;
+import com.openai.models.chat.completions.StructuredChatCompletion;
+import com.openai.models.chat.completions.StructuredChatCompletionCreateParams;
+import com.openai.models.chat.completions.StructuredChatCompletionMessage;
 import com.openai.services.blocking.ChatService;
 import com.openai.services.blocking.chat.ChatCompletionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +17,8 @@ import pl.nbp.copilot.config.OpenRouterProperties;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @DisplayName("DecisionEngine")
@@ -38,29 +37,31 @@ class DecisionEngineIntegrationTest {
         when(mockChatService.completions()).thenReturn(mockCompletionService);
 
         var properties = new OpenRouterProperties("test-key", "http://localhost", "gpt-text", "gpt-vision");
-        decisionEngine = new DecisionEngine(mockClient, properties, new ObjectMapper());
+        decisionEngine = new DecisionEngine(mockClient, properties);
     }
 
-    private void setupCompletionResponse(String jsonContent) {
-        var mockCompletion = mock(ChatCompletion.class);
-        var mockChoice = mock(ChatCompletion.Choice.class);
-        var mockMessage = mock(ChatCompletionMessage.class);
+    @SuppressWarnings("unchecked")
+    private void setupStructuredResponse(Decision decision) {
+        var mockMessage = mock(StructuredChatCompletionMessage.class);
+        var mockChoice = mock(StructuredChatCompletion.Choice.class);
+        var mockCompletion = mock(StructuredChatCompletion.class);
 
-        lenient().when(mockMessage.content()).thenReturn(Optional.of(jsonContent));
+        lenient().when(mockMessage.content()).thenReturn(Optional.of(decision));
         lenient().when(mockChoice.message()).thenReturn(mockMessage);
         lenient().when(mockCompletion.choices()).thenReturn(List.of(mockChoice));
-        when(mockCompletionService.create(any(ChatCompletionCreateParams.class))).thenReturn(mockCompletion);
+        when(mockCompletionService.create(any(StructuredChatCompletionCreateParams.class)))
+                .thenReturn(mockCompletion);
     }
 
     @Test
     @DisplayName("APPROVE: deserializacja i werdykt")
     void approveVerdictDeserialized() {
-        setupCompletionResponse("""
-                {"verdict":"APPROVE","justification":"Produkt w stanie nieużywanym, zakupiony 3 dni temu.",
-                 "nextSteps":"Proszę skontaktować się z działem obsługi klienta.",
-                 "disclaimer":"Niniejsza decyzja ma charakter wyłącznie doradczy i nie jest wiążącą decyzją firmy.",
-                 "missingInfo":null}
-                """);
+        setupStructuredResponse(new Decision(
+                Verdict.APPROVE,
+                "Produkt w stanie nieużywanym, zakupiony 3 dni temu.",
+                "Proszę skontaktować się z działem obsługi klienta.",
+                "Niniejsza decyzja ma charakter wyłącznie doradczy i nie jest wiążącą decyzją firmy.",
+                null));
 
         Decision decision = decisionEngine.decide(List.of());
 
@@ -73,12 +74,12 @@ class DecisionEngineIntegrationTest {
     @Test
     @DisplayName("REJECT: deserializacja i werdykt")
     void rejectVerdictDeserialized() {
-        setupCompletionResponse("""
-                {"verdict":"REJECT","justification":"Uszkodzenie mechaniczne wskazuje na nieautoryzowaną naprawę.",
-                 "nextSteps":"Możliwa płatna naprawa. Proszę odwiedzić autoryzowany serwis.",
-                 "disclaimer":"Niniejsza decyzja ma charakter wyłącznie doradczy.",
-                 "missingInfo":null}
-                """);
+        setupStructuredResponse(new Decision(
+                Verdict.REJECT,
+                "Uszkodzenie mechaniczne wskazuje na nieautoryzowaną naprawę.",
+                "Możliwa płatna naprawa. Proszę odwiedzić autoryzowany serwis.",
+                "Niniejsza decyzja ma charakter wyłącznie doradczy.",
+                null));
 
         Decision decision = decisionEngine.decide(List.of());
 
@@ -90,12 +91,12 @@ class DecisionEngineIntegrationTest {
     @Test
     @DisplayName("NEEDS_REVIEW: deserializacja i niepuste missingInfo")
     void needsReviewHasNonEmptyMissingInfo() {
-        setupCompletionResponse("""
-                {"verdict":"NEEDS_REVIEW","justification":"Zdjęcie jest niewyraźne.",
-                 "nextSteps":"Proszę przesłać wyraźniejsze zdjęcie.",
-                 "disclaimer":"Niniejsza decyzja ma charakter wyłącznie doradczy.",
-                 "missingInfo":"Brak wyraźnego zdjęcia pokazującego uszkodzenie ekranu."}
-                """);
+        setupStructuredResponse(new Decision(
+                Verdict.NEEDS_REVIEW,
+                "Zdjęcie jest niewyraźne.",
+                "Proszę przesłać wyraźniejsze zdjęcie.",
+                "Niniejsza decyzja ma charakter wyłącznie doradczy.",
+                "Brak wyraźnego zdjęcia pokazującego uszkodzenie ekranu."));
 
         Decision decision = decisionEngine.decide(List.of());
 
@@ -105,16 +106,18 @@ class DecisionEngineIntegrationTest {
 
     @Test
     @DisplayName("używa modelu tekstowego (text model) jako String slug")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     void usesTextModelSlug() {
-        setupCompletionResponse("""
-                {"verdict":"APPROVE","justification":"OK","nextSteps":"OK",
-                 "disclaimer":"Doradcze.","missingInfo":null}
-                """);
+        setupStructuredResponse(new Decision(
+                Verdict.APPROVE,
+                "OK", "OK",
+                "Doradcze.",
+                null));
 
         decisionEngine.decide(List.of());
 
-        var captor = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
+        var captor = ArgumentCaptor.forClass(StructuredChatCompletionCreateParams.class);
         verify(mockCompletionService).create(captor.capture());
-        assertThat(captor.getValue().model().asString()).isEqualTo("gpt-text");
+        assertThat(captor.getValue().rawParams().model().asString()).isEqualTo("gpt-text");
     }
 }
