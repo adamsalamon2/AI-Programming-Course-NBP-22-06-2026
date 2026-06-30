@@ -59,7 +59,12 @@ public class StreamingChatClient {
                 if (content != null && !content.isEmpty()) {
                     fullResponse.append(content);
                     try {
-                        emitter.send(SseEmitter.event().data(content));
+                        // Specyfikacja SSE: parser klienta usuwa dokładnie jedną wiodącą spację
+                        // z wartości pola data. Spring pisze "data:<content>" (bez spacji po dwukropku),
+                        // więc wiodąca spacja tokenu (np. " mogę") byłaby tą jedyną spacją i zostałaby
+                        // skonsumowana przez parser. Rozwiązanie: poprzedzamy wartość jedną spacją,
+                        // którą parser usunie, zachowując oryginalną zawartość tokenu.
+                        emitter.send(SseEmitter.event().data(" " + content));
                     } catch (IOException ex) {
                         throw new java.io.UncheckedIOException(ex);
                     }

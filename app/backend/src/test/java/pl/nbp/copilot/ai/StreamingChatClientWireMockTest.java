@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -220,5 +221,64 @@ class StreamingChatClientWireMockTest {
         var captor = org.mockito.ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
         verify(mockCompletionService).createStreaming(captor.capture());
         assertThat(captor.getValue().model().asString()).isEqualTo("gpt-text");
+    }
+
+    /**
+     * BUG-A regression: tokeny z wiodącą spacją (np. " mogę") muszą zachować tę spację po
+     * przejściu przez SSE. Specyfikacja SSE (WHATWG): parser klienta usuwa dokładnie jedną
+     * wiodącą spację z wartości pola data. Serwer musi więc poprzedzić każdy token dodatkową
+     * spacją, żeby oryginalna wiodąca spacja przetrwała po stronie klienta.
+     *
+     * <p>Test przechwytuje surowe wartości z {@code DataWithMediaType.getData()} zwrócone
+     * przez {@code SseEventBuilder.build()} i weryfikuje, że token z wiodącą spacją jest
+     * przesyłany z dwiema spacjami (extra + oryginalna).</p>
+     */
+    @Test
+    @DisplayName("BUG-A: token z wiodącą spacją jest przesyłany z extra spacją w payloadzie SSE")
+    void stream_tokenWithLeadingSpace_ssePayloadPreservesSpace() throws Exception {
+        // Tokeny symulujące typową odpowiedź OpenAI: " mogę" zaczyna się spacją
+        setupStreamingResponse(
+                chunkWithDelta("Przepraszam"),
+                chunkWithDelta(","),
+                chunkWithDelta(" mogę"),
+                chunkWithDelta(" pomóc"),
+                finishChunk()
+        );
+
+        // Przechwytujemy WSZYSTKIE wartości Data z buildera SSE (w tym prefiks "data:", newline itd.)
+        List<String> capturedSseDataValues = new ArrayList<>();
+
+        SseEmitter capturingEmitter = new SseEmitter() {
+            @Override
+            public void send(SseEventBuilder builder) throws IOException {
+                // build() zwraca Set<ResponseBodyEmitter.DataWithMediaType>
+                // Spring rozbija event na części: "data:" prefix, właściwa wartość tokenu, newline
+                builder.build().forEach(dataWithMediaType -> {
+                    Object data = dataWithMediaType.getData();
+                    if (data instanceof String s) {
+                        capturedSseDataValues.add(s);
+                    }
+                });
+            }
+        };
+
+        String fullReply = streamingChatClient.stream(singleUserMessage("test"), capturingEmitter);
+
+        // Pełna odpowiedź (wewnętrzna konkatenacja na serwerze) musi być bez dodatkowych spacji
+        assertThat(fullReply)
+                .as("Wewnętrzna konkatenacja odpowiedzi musi być poprawna (bez extra spacji)")
+                .isEqualTo("Przepraszam, mogę pomóc");
+
+        // W payloadzie SSE musi znajdować się wartość zaczynająca się od "  mogę"
+        // (dwie spacje: extra + oryginalna; Spring dokłada na końcu \n\n, ale nas interesuje prefix).
+        // Po stronie klienta parser SSE usunie jedną wiodącą spację → token " mogę" — poprawnie.
+        // Bez fixa byłoby " mogę..." (jedna spacja) → parser usuwa → "mogę" — BŁĄD.
+        assertThat(capturedSseDataValues)
+                .as("Token ' mogę' musi być przesłany z prefiksem '  mogę' (extra spacja + oryginalna)")
+                .anyMatch(v -> v.startsWith("  mogę"));
+
+        assertThat(capturedSseDataValues)
+                .as("Token ' pomóc' musi być przesłany z prefiksem '  pomóc' (extra spacja + oryginalna)")
+                .anyMatch(v -> v.startsWith("  pomóc"));
     }
 }
