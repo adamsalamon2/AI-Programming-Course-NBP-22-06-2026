@@ -1,6 +1,8 @@
 package pl.nbp.copilot.ai;
 
 import com.openai.client.OpenAIClient;
+import com.openai.core.RequestOptions;
+import com.openai.core.Timeout;
 import com.openai.models.chat.completions.ChatCompletionContentPart;
 import com.openai.models.chat.completions.ChatCompletionContentPartImage;
 import com.openai.models.chat.completions.ChatCompletionContentPartText;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import pl.nbp.copilot.config.OpenRouterProperties;
 import pl.nbp.copilot.web.model.RequestType;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -19,9 +22,22 @@ import java.util.List;
  *
  * <p>Wysyła obraz jako data URL (JPEG base64) razem z instrukcją analizy
  * dopasowaną do typu zgłoszenia (zwrot vs reklamacja).</p>
+ *
+ * <p>Wywołanie blokuje wątek przez maksymalnie {@value #REQUEST_TIMEOUT_SECONDS} sekund
+ * ({@link #REQUEST_OPTIONS}). Przekroczenie limitu skutkuje wyjątkiem obsługiwanym
+ * przez {@code GlobalExceptionHandler} — klient otrzymuje odpowiedź 502, nie wisi w nieskończoność.</p>
  */
 @Service
 public class VisionAnalyzer {
+
+    /** Maksymalny czas oczekiwania na odpowiedź modelu wizyjnego. */
+    static final int REQUEST_TIMEOUT_SECONDS = 60;
+
+    private static final RequestOptions REQUEST_OPTIONS = RequestOptions.builder()
+            .timeout(Timeout.builder()
+                    .request(Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS))
+                    .build())
+            .build();
 
     private static final Logger log = LoggerFactory.getLogger(VisionAnalyzer.class);
 
@@ -72,7 +88,7 @@ public class VisionAnalyzer {
                 .addMessage(userMessage)
                 .build();
 
-        var response = client.chat().completions().create(params);
+        var response = client.chat().completions().create(params, REQUEST_OPTIONS);
         return response.choices().get(0).message().content().orElse("");
     }
 }

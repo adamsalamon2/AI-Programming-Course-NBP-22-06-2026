@@ -1,6 +1,7 @@
 package pl.nbp.copilot.ai;
 
 import com.openai.client.OpenAIClient;
+import com.openai.core.RequestOptions;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionMessage;
@@ -14,6 +15,7 @@ import pl.nbp.copilot.config.OpenRouterProperties;
 import pl.nbp.copilot.policy.PolicyLoader;
 import pl.nbp.copilot.web.model.RequestType;
 
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +55,9 @@ class VisionAnalyzerIntegrationTest {
         lenient().when(mockMessage.content()).thenReturn(Optional.of(content));
         lenient().when(mockChoice.message()).thenReturn(mockMessage);
         lenient().when(mockCompletion.choices()).thenReturn(List.of(mockChoice));
-        when(mockCompletionService.create(any(ChatCompletionCreateParams.class))).thenReturn(mockCompletion);
+        // Używamy dwuargumentowego create(params, requestOptions) — z RequestOptions z timeoutem (BUG-B fix)
+        when(mockCompletionService.create(any(ChatCompletionCreateParams.class), any(RequestOptions.class)))
+                .thenReturn(mockCompletion);
     }
 
     @Test
@@ -64,7 +68,7 @@ class VisionAnalyzerIntegrationTest {
         visionAnalyzer.analyze("dGVzdA==", RequestType.RETURN);
 
         var captor = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
-        verify(mockCompletionService).create(captor.capture());
+        verify(mockCompletionService).create(captor.capture(), any(RequestOptions.class));
         assertThat(captor.getValue().model().asString()).isEqualTo("gpt-vision");
     }
 
@@ -77,7 +81,7 @@ class VisionAnalyzerIntegrationTest {
         visionAnalyzer.analyze(testBase64, RequestType.COMPLAINT);
 
         var captor = ArgumentCaptor.forClass(ChatCompletionCreateParams.class);
-        verify(mockCompletionService).create(captor.capture());
+        verify(mockCompletionService).create(captor.capture(), any(RequestOptions.class));
         var params = captor.getValue();
 
         var messages = params.messages();
@@ -103,5 +107,34 @@ class VisionAnalyzerIntegrationTest {
         String result = visionAnalyzer.analyze("dGVzdA==", RequestType.RETURN);
 
         assertThat(result).isEqualTo("Brak śladów użytkowania na urządzeniu");
+    }
+
+    /**
+     * BUG-B regression: wywołanie modelu wizyjnego musi być chronione timeoutem,
+     * żeby zablokowane żądanie (np. brak odpowiedzi OpenRouter) nie wiesiło wątku w nieskończoność.
+     *
+     * <p>Weryfikujemy, że {@code create(params, requestOptions)} jest wywoływane z {@link RequestOptions}
+     * zawierającym niepusty timeout żądania (≥ 1 sekunda), co deleguje limit czasu do warstwy OkHttp.</p>
+     */
+    @Test
+    @DisplayName("BUG-B: wywołanie modelu wizyjnego używa RequestOptions z timeoutem żądania")
+    void visionCall_usesRequestOptionsWithTimeout() {
+        setupCompletionResponse("analiza");
+
+        visionAnalyzer.analyze("dGVzdA==", RequestType.RETURN);
+
+        var requestOptionsCaptor = ArgumentCaptor.forClass(RequestOptions.class);
+        verify(mockCompletionService).create(any(ChatCompletionCreateParams.class), requestOptionsCaptor.capture());
+
+        RequestOptions options = requestOptionsCaptor.getValue();
+        assertThat(options.getTimeout())
+                .as("RequestOptions musi zawierać timeout")
+                .isNotNull();
+
+        Duration requestTimeout = options.getTimeout().request();
+        assertThat(requestTimeout)
+                .as("Timeout żądania musi być skonfigurowany (minimum 1 sekunda)")
+                .isNotNull()
+                .isGreaterThanOrEqualTo(Duration.ofSeconds(1));
     }
 }

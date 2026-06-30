@@ -1,6 +1,7 @@
 package pl.nbp.copilot.ai;
 
 import com.openai.client.OpenAIClient;
+import com.openai.core.RequestOptions;
 import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionMessage;
@@ -61,7 +62,8 @@ class DecisionEngineResponseFormatRegressionTest {
         lenient().when(mockStructuredMessage.content()).thenReturn(Optional.of(returnValue));
         lenient().when(mockStructuredChoice.message()).thenReturn(mockStructuredMessage);
         lenient().when(mockStructuredCompletion.choices()).thenReturn(List.of(mockStructuredChoice));
-        when(mockCompletionService.create(any(StructuredChatCompletionCreateParams.class)))
+        // Dwuargumentowy overload — z RequestOptions (BUG-B fix)
+        when(mockCompletionService.create(any(StructuredChatCompletionCreateParams.class), any(RequestOptions.class)))
                 .thenReturn(mockStructuredCompletion);
     }
 
@@ -80,9 +82,9 @@ class DecisionEngineResponseFormatRegressionTest {
         Decision result = decisionEngine.decide(List.of());
 
         // Verify the structured overload was called (json_schema path)
-        verify(mockCompletionService).create(any(StructuredChatCompletionCreateParams.class));
+        verify(mockCompletionService).create(any(StructuredChatCompletionCreateParams.class), any(RequestOptions.class));
         // Verify the plain json_object overload was NOT called
-        verify(mockCompletionService, never()).create(any(ChatCompletionCreateParams.class));
+        verify(mockCompletionService, never()).create(any(ChatCompletionCreateParams.class), any(RequestOptions.class));
 
         assertThat(result.getVerdict()).isEqualTo(Verdict.APPROVE);
     }
@@ -104,7 +106,7 @@ class DecisionEngineResponseFormatRegressionTest {
 
         @SuppressWarnings("rawtypes")
         var captor = ArgumentCaptor.forClass(StructuredChatCompletionCreateParams.class);
-        verify(mockCompletionService).create(captor.capture());
+        verify(mockCompletionService).create(captor.capture(), any(RequestOptions.class));
 
         StructuredChatCompletionCreateParams<Decision> params = captor.getValue();
         assertThat(params.rawParams().model().asString()).isEqualTo("gpt-text");

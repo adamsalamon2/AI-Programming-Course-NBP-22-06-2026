@@ -1,6 +1,7 @@
 package pl.nbp.copilot.ai;
 
 import com.openai.client.OpenAIClient;
+import com.openai.core.RequestOptions;
 import com.openai.models.chat.completions.StructuredChatCompletion;
 import com.openai.models.chat.completions.StructuredChatCompletionCreateParams;
 import com.openai.models.chat.completions.StructuredChatCompletionMessage;
@@ -14,6 +15,7 @@ import pl.nbp.copilot.ai.model.Decision;
 import pl.nbp.copilot.ai.model.Verdict;
 import pl.nbp.copilot.config.OpenRouterProperties;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,7 +51,8 @@ class DecisionEngineIntegrationTest {
         lenient().when(mockMessage.content()).thenReturn(Optional.of(decision));
         lenient().when(mockChoice.message()).thenReturn(mockMessage);
         lenient().when(mockCompletion.choices()).thenReturn(List.of(mockChoice));
-        when(mockCompletionService.create(any(StructuredChatCompletionCreateParams.class)))
+        // Używamy dwuargumentowego create(params, requestOptions) — z RequestOptions z timeoutem (BUG-B fix)
+        when(mockCompletionService.create(any(StructuredChatCompletionCreateParams.class), any(RequestOptions.class)))
                 .thenReturn(mockCompletion);
     }
 
@@ -117,7 +120,41 @@ class DecisionEngineIntegrationTest {
         decisionEngine.decide(List.of());
 
         var captor = ArgumentCaptor.forClass(StructuredChatCompletionCreateParams.class);
-        verify(mockCompletionService).create(captor.capture());
+        verify(mockCompletionService).create(captor.capture(), any(RequestOptions.class));
         assertThat(captor.getValue().rawParams().model().asString()).isEqualTo("gpt-text");
+    }
+
+    /**
+     * BUG-B regression: wywołanie modelu decyzyjnego musi być chronione timeoutem,
+     * żeby zablokowane żądanie nie wiesiło wątku w nieskończoność.
+     *
+     * <p>Weryfikujemy, że {@code create(params, requestOptions)} jest wywoływane z {@link RequestOptions}
+     * zawierającym niepusty timeout żądania (≥ 1 sekunda).</p>
+     */
+    @Test
+    @DisplayName("BUG-B: wywołanie modelu decyzyjnego używa RequestOptions z timeoutem żądania")
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void decisionCall_usesRequestOptionsWithTimeout() {
+        setupStructuredResponse(new Decision(
+                Verdict.APPROVE,
+                "OK", "OK",
+                "Doradcze.",
+                null));
+
+        decisionEngine.decide(List.of());
+
+        var requestOptionsCaptor = ArgumentCaptor.forClass(RequestOptions.class);
+        verify(mockCompletionService).create(any(StructuredChatCompletionCreateParams.class), requestOptionsCaptor.capture());
+
+        RequestOptions options = requestOptionsCaptor.getValue();
+        assertThat(options.getTimeout())
+                .as("RequestOptions musi zawierać timeout")
+                .isNotNull();
+
+        Duration requestTimeout = options.getTimeout().request();
+        assertThat(requestTimeout)
+                .as("Timeout żądania musi być skonfigurowany (minimum 1 sekunda)")
+                .isNotNull()
+                .isGreaterThanOrEqualTo(Duration.ofSeconds(1));
     }
 }
