@@ -1,0 +1,1 @@
+- [Project: E2E test suite status](project-e2e-status.md) — Step 3.3 done (2026-06-30): 26/26 pass; fixture/test fixes applied; SSE space-stripping and panel expand notes

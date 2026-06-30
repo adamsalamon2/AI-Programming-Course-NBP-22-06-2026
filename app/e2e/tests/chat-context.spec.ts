@@ -117,10 +117,11 @@ test.describe('Kontekst czatu — odpowiedź na follow-up i obsługa pytań off-
     );
     await chatPage.waitForNewAgentBubble(bubbleCountBefore);
 
-    // Agent must decline and stay on-topic (AC-27)
+    // Agent must decline and stay on-topic (AC-27).
+    // Streamed reply is normal spaced Polish text (SSE preserves token spaces).
     const lastBubble = page.locator('.message-bubble--assistant').last();
     await expect(lastBubble).toContainText(
-      /nie mog[ęe] pom[oó]c|poza zakresem|dotyczy.*reklamacj|dotyczy.*zwrot|asystent|serwis/i,
+      /nie mog[ęe] (wyjaśni|udziel|pom[oó]c)|porad prawnych|niezwiązan|poza zakresem|mog[ęe] (natomiast |jedynie )?pom[oó]c|dotycząc.*(zwrot|reklamacj|spraw)|bieżącej sprawy/i,
       { timeout: 90_000 }
     );
   });

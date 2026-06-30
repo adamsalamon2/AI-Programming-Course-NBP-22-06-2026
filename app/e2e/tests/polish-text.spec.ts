@@ -167,11 +167,15 @@ test.describe('AC-25 Wszystkie teksty widoczne dla użytkownika są po polsku', 
 
     await chatPage.waitForDecision();
 
-    // The case summary panel header (from pl.ts chat.summaryTitle: "Podsumowanie zgłoszenia")
-    // and the submitted data labels should be visible in Polish
-    // Confirmed from chat.component.html: "Rodzaj wniosku", category/model/date labels
-    await expect(page.getByText('Reklamacja')).toBeVisible();
-    await expect(page.getByText('Laptopy')).toBeVisible();
-    await expect(page.getByText(/Acer Predator/)).toBeVisible();
+    // The case summary fields live inside a collapsible panel toggled by
+    // "Podsumowanie zgłoszenia". Expand it before asserting on the field values.
+    await chatPage.expandSummaryPanel();
+
+    // The submitted data should be visible in Polish after expanding.
+    // Use exact:true / role-scoped locators to avoid strict-mode violations
+    // (the same words may appear in the LLM reply bubble).
+    await expect(page.getByText('Reklamacja', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Laptopy', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/Acer Predator/).first()).toBeVisible();
   });
 });

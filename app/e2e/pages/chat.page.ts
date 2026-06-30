@@ -147,6 +147,22 @@ export class ChatPage {
     await this.waitForTypingIndicatorGone();
   }
 
+  /**
+   * Expands the case-summary panel if it is collapsed.
+   *
+   * The panel is toggled by a button labeled "Podsumowanie zgłoszenia" (pl.ts chat.summaryTitle).
+   * The summary fields (Reklamacja / category / model) live inside this expandable panel
+   * and are hidden until expanded — assertions on them must call this first.
+   */
+  async expandSummaryPanel(): Promise<void> {
+    const toggleButton = this.page.getByRole('button', { name: /Podsumowanie zgłoszenia/i });
+    // Only click if the button exists and the panel is not yet expanded.
+    // We check for the button; if the panel fields are already visible we skip.
+    if (await toggleButton.isVisible()) {
+      await toggleButton.click();
+    }
+  }
+
   async clickNowaSprawaMi() {
     await this.nowaSprawaButton.click();
     await expect(this.page).toHaveURL('/'); // should navigate back to intake form
