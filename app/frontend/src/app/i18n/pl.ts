@@ -94,6 +94,7 @@ export const pl = {
     imageFormatInvalid:
       'Nieobsługiwany format pliku. Akceptowane formaty to: JPEG, PNG, WebP.',
     imageTooLarge: 'Plik jest za duży. Maksymalny rozmiar zdjęcia to 10 MB.',
+    formIncomplete: 'Uzupełnij wymagane pola zaznaczone na czerwono.',
   },
 } as const;
 

@@ -129,6 +129,14 @@
           }
         </div>
 
+        <!-- Form incomplete banner (shown when submit is blocked by validation) -->
+        @if (formIncomplete()) {
+          <div class="submit-error" role="alert" data-testid="form-incomplete-banner">
+            <mat-icon color="warn">error_outline</mat-icon>
+            <span>{{ labels.errors.formIncomplete }}</span>
+          </div>
+        }
+
         <!-- Submit error -->
         @if (submitError()) {
           <div class="submit-error" role="alert">
